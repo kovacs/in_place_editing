@@ -87,7 +87,8 @@ module InPlaceMacrosHelper
     object_name = tag.object.class.to_s.underscore
 
     # setup restful update URL
-    url = "/#{object_name.pluralize}/#{tag.object.to_param}.json"
+    url = "#{url_for(tag.object)}.json"
+    #"/#{object_name.pluralize}/#{tag.object.to_param}.json"
 
     in_place_editor_options[:options] ||= {}
     in_place_editor_options[:options][:method] = '"put"'
