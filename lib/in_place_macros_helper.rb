@@ -35,7 +35,16 @@ module InPlaceMacrosHelper
   # <tt>:script</tt>::            Instructs the in-place editor to evaluate the remote JavaScript response (default: false)
   # <tt>:click_to_edit_text</tt>::The text shown during mouseover the editable text (default: "Click to edit")
   def in_place_editor(field_id, options = {})
-    function =  "new Ajax.InPlaceEditor("
+    type = options[:collection].nil? ? 'single' : 'collection'
+    build_in_place_editor(type, field_id, options)
+  end
+
+  EDITORS = {'single' => 'InPlaceEditor',
+             'collection' => 'InPlaceCollectionEditor'}
+
+  def build_in_place_editor(type, field_id, options={})
+    editor = EDITORS[type]
+    function =  "new Ajax.#{editor}("
     function << "'#{field_id}', "
     function << "'#{url_for(options[:url])}'"
 
@@ -45,7 +54,7 @@ module InPlaceMacrosHelper
       options[:with] ||= "Form.serialize(form)"
       options[:with] += " + '&authenticity_token=' + encodeURIComponent('#{form_authenticity_token}')"
     end
-
+    js_options['collection'] = %(#{options[:collection]}) if options[:collection]
     js_options['cancelText'] = %('#{options[:cancel_text]}') if options[:cancel_text]
     js_options['okText'] = %('#{options[:save_text]}') if options[:save_text]
     js_options['loadingText'] = %('#{options[:loading_text]}') if options[:loading_text]
@@ -70,8 +79,6 @@ module InPlaceMacrosHelper
 
     javascript_tag(function)
   end
-
-
   # Renders the value of the specified object and method with in-place editing capabilities.
   # Updated to be used with RESTful routes. The :url param is inferred from the object type. Also
   # the :callback and :on_complete params are also populated if nothing is provided. The :callback
@@ -89,7 +96,6 @@ module InPlaceMacrosHelper
 
     # setup restful update URL
     url = "#{url_for(tag.object)}.json"
-    #"/#{object_name.pluralize}/#{tag.object.to_param}.json"
 
     in_place_editor_options[:options] ||= {}
     in_place_editor_options[:options][:method] = '"put"'
