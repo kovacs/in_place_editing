@@ -62,6 +62,7 @@ module InPlaceMacrosHelper
       js_options['callback']   = "function(form) { return #{options[:with]} }" if options[:with]
     end
     js_options['onComplete']   = options[:on_complete] if options[:on_complete]
+    js_options['onFailure'] = %('#{options[:on_failure]}') if options[:on_failure]
     js_options['clickToEditText'] = %('#{options[:click_to_edit_text]}') if options[:click_to_edit_text]
     js_options['textBetweenControls'] = %('#{options[:text_between_controls]}') if options[:text_between_controls]
     function << (', ' + options_for_javascript(js_options)) unless js_options.empty?
