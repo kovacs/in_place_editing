@@ -54,17 +54,66 @@ module InPlaceMacrosHelper
     js_options['cols'] = options[:cols] if options[:cols]
     js_options['size'] = options[:size] if options[:size]
     js_options['externalControl'] = "'#{options[:external_control]}'" if options[:external_control]
-    js_options['loadTextURL'] = "'#{url_for(options[:load_text_url])}'" if options[:load_text_url]        
-    js_options['ajaxOptions'] = options[:options] if options[:options]
+    js_options['loadTextURL'] = "'#{url_for(options[:load_text_url])}'" if options[:load_text_url]
+    js_options['ajaxOptions'] = options_for_javascript(options[:options]) if options[:options]
     js_options['htmlResponse'] = !options[:script] if options[:script]
-    js_options['callback']   = "function(form) { return #{options[:with]} }" if options[:with]
+    js_options['callback']   = options[:callback] if options[:callback]
+    if !options[:callback]
+      js_options['callback']   = "function(form) { return #{options[:with]} }" if options[:with]
+    end
+    js_options['onComplete']   = options[:on_complete] if options[:on_complete]
     js_options['clickToEditText'] = %('#{options[:click_to_edit_text]}') if options[:click_to_edit_text]
     js_options['textBetweenControls'] = %('#{options[:text_between_controls]}') if options[:text_between_controls]
     function << (', ' + options_for_javascript(js_options)) unless js_options.empty?
-    
     function << ')'
 
     javascript_tag(function)
+  end
+
+
+  # Renders the value of the specified object and method with in-place editing capabilities.
+  # Updated to be used with RESTful routes. The :url param is inferred from the object type. Also
+  # the :callback and :on_complete params are also populated if nothing is provided. The :callback
+  # params is populated with a function that sets the form value of the item being edited and
+  # included the form_authenticity_token if your app has that setting turned on. The :on_complete
+  # parameter takes the response from the update and updates the UI. By default it does a Scriptaculous
+  # highlight effect on the field after updating it with the new value.
+  # TODO: make it so that failures show validation error messages
+  def rest_in_place_editor_field(object, method, tag_options = {}, in_place_editor_options = {})
+    tag = ::ActionView::Helpers::InstanceTag.new(object, method, self)
+    tag_options = {:tag => "span",
+      :id => "#{object}_#{method}_#{tag.object.id}_in_place_editor",
+      :class => "in_place_editor_field"}.merge!(tag_options)
+    object_name = tag.object.class.to_s.underscore
+
+    # setup restful update URL
+    url = "/#{object_name.pluralize}/#{tag.object.to_param}.json"
+
+    in_place_editor_options[:options] ||= {}
+    in_place_editor_options[:options][:method] = '"put"'
+
+    in_place_editor_options[:url] = in_place_editor_options[:url] || url
+
+    # send up just the param being updated and the auth token if needed
+    callback = "function(form, value) {
+                  return '#{object_name}[#{method.to_s}]=' + encodeURIComponent(value)"
+    callback += "+ '&authenticity_token=' + encodeURIComponent('#{form_authenticity_token}')" if protect_against_forgery?
+    callback += "}"
+
+    in_place_editor_options[:callback] ||= callback
+
+    # update the UI with the updated attribute value
+    in_place_editor_options[:on_complete] ||= "function(transport, element) {
+                  if (transport && transport.status == 200) {
+                    new Effect.Highlight(element.id, {startcolor: \"#00ffff\"});
+                    element.innerHTML=transport.responseText.evalJSON().#{tag.object.class.name.demodulize.tableize.singularize}.#{method.to_s};
+                  } else {
+                    new Effect.Highlight(element.id, {startcolor: \"red\"});
+                  }
+                }"
+
+    tag.to_content_tag(tag_options.delete(:tag), tag_options) +
+      in_place_editor(tag_options[:id], in_place_editor_options)
   end
   
   # Renders the value of the specified object and method with in-place editing capabilities.
@@ -75,4 +124,5 @@ module InPlaceMacrosHelper
     tag.to_content_tag(tag_options.delete(:tag), tag_options) +
     in_place_editor(tag_options[:id], in_place_editor_options)
   end
+
 end
