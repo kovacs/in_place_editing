@@ -144,21 +144,11 @@ module InPlaceMacrosHelper
       zone_values += [['------', '------']]
       the_rest = zones.reject { |z| priority_zones.include?( z ) }
       zone_values += convert_zones[the_rest]
-      # zone_options = ""
-      # if priority_zones.is_a?(Regexp)
-      #   priority_zones = model.all.find_all {|z| z =~ priority_zones}
-      # end
-      # zone_options += options_for_select(convert_zones[priority_zones], selected)
-      # zone_options += "<option value=\"\" disabled=\"disabled\">-------------</option>\n"
-      # 
-      # zones = zones.reject { |z| priority_zones.include?( z ) }
     else
       zone_values = convert_zones[model.all]
     end
 
     return zone_values.inspect
-    # zone_options += options_for_select(convert_zones[zones], selected)
-    # zone_options
   end
 
 end
